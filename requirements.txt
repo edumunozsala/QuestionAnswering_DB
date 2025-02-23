@@ -3,4 +3,6 @@ langchain_community
 langchain_core
 pandas
 python-dotenv
-openai
+SQLAlchemy
+langchain-openai
+chromadb

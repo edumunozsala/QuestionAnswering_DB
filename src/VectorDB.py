@@ -1,6 +1,6 @@
 import chromadb
 
-Class VectorDB:
+class VectorDB:
 
     def __init__(self, persist_directory:str) -> None:
         """

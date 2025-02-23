@@ -9,13 +9,12 @@ class PrepareVectorDBFromTabularData:
         Args:
             file_directory (str): The directory path of the file to be processed.
         """
-        self.APPCFG = LoadConfig()
         self.file_directory= file_directory
-        self.embedding_model= embedding_model
+        self.embeddings_model= embedding_model
         self.vectordb= vectordb
         self.collection_name= collection_name
 
-    def _load_dataframe(self, file_directory: str):
+    def _load_dataframe(self, file_directory: str, limit: int):
         """
         Load a DataFrame from the specified CSV or Excel file.
         
@@ -34,7 +33,7 @@ class PrepareVectorDBFromTabularData:
                 file_names_with_extensions)
         # CSV datafile        
         if file_extension == ".csv":
-            df = pd.read_csv(file_directory)
+            df = pd.read_csv(file_directory, nrows=limit)
             return df, file_name
         # Excel datafile                    
         elif file_extension == ".xlsx":
@@ -42,6 +41,29 @@ class PrepareVectorDBFromTabularData:
             return df, file_name
         else:
             raise ValueError("The selected file type is not supported")
+
+    def dataframe_to_json_batches(df, batch_size=50, limit=0):
+        """
+        Converts a pandas DataFrame to JSON format in batches of a given size.
+        
+        Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        batch_size (int): The number of rows per batch.
+        
+        Returns:
+        List of JSON strings, each containing a batch of rows.
+        """
+        json_batches = []
+        if limit>0:
+            num_rows=limit
+        else:
+            num_rows= len(df)
+
+        for i in range(0, num_rows, batch_size):
+            batch = df.iloc[i:i+batch_size]
+            json_batches.append(batch.to_json(orient='records'))
+        
+        return json_batches
 
     def _generate_embeddings(self, df:pd.DataFrame, file_name:str):
         """
@@ -63,14 +85,15 @@ class PrepareVectorDBFromTabularData:
             # Treat each row as a separate chunk
             for col in df.columns:
                 output_str += f"{col}: {row[col]},\n"
-            response = self.embedding_model.azure_openai_client.embeddings.create(
-                input = output_str,
-                model= self.embedding_model.embedding_model_name
+            response = self.embeddings_model.embed_query(
+                output_str,
             )
-            embeddings.append(response.data[0].embedding)
+
+            embeddings.append(response)
             docs.append(output_str)
             metadatas.append({"source": file_name})
             ids.append(f"id{index}")
+            
         return docs, metadatas, ids, embeddings
 
     def _load_data_into_vectordb(self):
@@ -98,3 +121,10 @@ class PrepareVectorDBFromTabularData:
         print("==============================")
         print("Number of vectors in vectordb:", vectordb.count())
         print("==============================")
+
+    def load_data(limit: int):
+
+        df, file_name= _load_dataframe(self.file_directory, limit)
+        print("File readed:", file_name)
+
+        return df
