@@ -3,7 +3,7 @@ from openai import AzureOpenAI
 from langchain.chat_models import AzureChatOpenAI
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI, OpenAI
 
-Class AIModels:
+class AIModels:
 
     def __init__(self, model_name:str, embedding_model_name:str, temperature: float, max_tokens: int) -> None:
         """
@@ -14,7 +14,7 @@ Class AIModels:
         """
         self.model_name = model_name
         self.embedding_model_name= embedding_model_name
-        self.temperature = file_directory
+        self.temperature = temperature
         self.max_tokens= max_tokens
 
     def load_azure_openai_models(self):
