@@ -184,8 +184,8 @@ class PrepareVectorDBFromTabularData:
         json_data= self.dataframe_to_json_batches(df, batch_size=25)
         #print("\n JSON:", json_data)
         #print(json_data[0])
-        for i in json_data[0]:
-            print(i)
+        #for i in json_data[0]:
+        #    print(i)
 
         docs, metadata, ids, embeddings= self._generate_embeddings_from_json(json_data, file_name)
         print(len(docs))
@@ -199,5 +199,5 @@ class PrepareVectorDBFromTabularData:
         #print(type(json_data[0]))
         #print(len(json_data))
         self._load_data_into_vectordb(25, self.collection_name)
-        return df
+
         

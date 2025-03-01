@@ -45,5 +45,31 @@ class VectorDB:
         collection_property = self.milvus_client.describe_collection(collection_name)
         print("Show collection details: %s" % collection_property)
 
+    def load_milvus_collection(self, collection_name: str):
+        # 7. Load the collection
+        self.milvus_client.load_collection(
+            collection_name
+        )
 
+        res = self.milvus_client.get_load_state(
+            collection_name
+        )
 
+        print(res)
+        print(f"Loaded Vector DB: {self.uri}")
+
+    def print_milvus_results(self, results: list):
+        for hits in results:
+            print("TopK results:")
+            for hit in hits:
+                print(hit) 
+
+    def get_docs_results(self, collection_name: str, results: list):
+
+        res = self.milvus_client.get(
+            collection_name=collection_name,
+            ids=[hit["row_id"] for res in results for hit in res],
+            output_fields=["row"]
+        )
+
+        return [r["row"] for r in res]

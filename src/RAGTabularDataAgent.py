@@ -1,4 +1,3 @@
-import os
 
 class RAGTabularDataAgent:
     """
@@ -18,8 +17,7 @@ class RAGTabularDataAgent:
         self.collection_name= collection_name
         self.chatbot= []
 
-    @staticmethod
-    def respond(message: str, topk) -> Tuple:
+    def respond(self, message: str, search_params: dict, topk) -> tuple:
         """
         Respond to a message based on the given chat and application functionality types.
 
@@ -35,27 +33,34 @@ class RAGTabularDataAgent:
                                              values to match the required return type and may be updated for further functionality.
                                              Currently, the function primarily updates the chatbot conversation list.
         """
-        search_params = {"metric_type": "L2",  "params": {"level": 2}}
+
         query_embeddings  = self.embeddings_model.embed_query(
                     message,
                 )
-        results = self.vectordb.milvus_client.search(self.collection_name, query_embeddings, 
+        print(query_embeddings)
+        print(search_params)
+
+        results = self.vectordb.milvus_client.search(collection_name= self.collection_name, data=[query_embeddings], 
                         limit=topk, search_params=search_params, anns_field="row_embedding")
 
-        prompt = f"User's question: {message} \n\n Search results:\n {results}"
+        docs_context= self.vectordb.get_docs_results(self.collection_name, results)
+
+        prompt = f"User's question: {message} \n\n Search results:\n {" ".join(docs_context)}"
+        
+        print(prompt)
 
         messages = [
                     {"role": "system", "content": str(
-                        APPCFG.rag_llm_system_role
+                        self.agent_system_role
                     )},
                     {"role": "user", "content": prompt}
         ]
-        llm_response = APPCFG.azure_openai_client.chat.completions.create(
-                    model=APPCFG.model_name,
-                    messages=messages
-        )
-        response = llm_response.choices[0].message.content
+        llm_response= self.langchain_llm.invoke(messages)
 
-        chatbot.append(
+        response = llm_response.content
+
+        self.chatbot.append(
                 (message, response))
-        return response, chatbot
+
+        return response, self.chatbot
+
