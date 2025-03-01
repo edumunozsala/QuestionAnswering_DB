@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import time
 
 class PrepareVectorDBFromTabularData:
     def __init__(self, file_directory:str, collection_name: str, csv_codec: str, 
@@ -16,6 +17,10 @@ class PrepareVectorDBFromTabularData:
         self.collection_name= collection_name
         self.csv_codec= csv_codec
         self.csv_sep= csv_sep
+        self.docs = None
+        self.metadatas = None
+        self.ids = None
+        self.embeddings = None
 
     def _load_dataframe(self, file_directory: str, limit: int):
         """
@@ -82,26 +87,27 @@ class PrepareVectorDBFromTabularData:
         Returns:
             list, list, list, list: Lists containing documents, metadatas, ids, and embeddings respectively.
         """
-        docs = []
-        metadatas = []
-        ids = []
-        embeddings = []
+        self.docs = []
+        self.metadatas = []
+        self.ids = []
+        self.embeddings = []
+
         for i, batch in enumerate(json_data):
             #output_str = ""
             # Treat each row as a separate chunk
-            for row in batch:
+            for j,row in enumerate(batch):
                 #output_str += f"{col}: {row[col]},\n"
 
                 response = self.embeddings_model.embed_query(
                     str(row),
                 )
 
-                embeddings.append(response)
-                docs.append(row)
-                metadatas.append({"source": file_name, "batch": i})
-                #ids.append(f"id{index}")
+                self.embeddings.append(response)
+                self.docs.append(str(row))
+                self.metadatas.append({"source": file_name, "batch": i})
+                self.ids.append(i*100+j)
             
-        return docs, metadatas, ids, embeddings
+        return self.docs, self.metadatas, self.ids, self.embeddings
 
     def _generate_embeddings(self, df:pd.DataFrame, file_name:str):
         """
@@ -114,10 +120,10 @@ class PrepareVectorDBFromTabularData:
         Returns:
             list, list, list, list: Lists containing documents, metadatas, ids, and embeddings respectively.
         """
-        docs = []
-        metadatas = []
-        ids = []
-        embeddings = []
+        self.docs = []
+        self.metadatas = []
+        self.ids = []
+        self.embeddings = []
         for index, row in df.iterrows():
             output_str = ""
             # Treat each row as a separate chunk
@@ -127,27 +133,38 @@ class PrepareVectorDBFromTabularData:
                 output_str,
             )
 
-            embeddings.append(response)
-            docs.append(output_str)
-            metadatas.append({"source": file_name})
-            ids.append(f"id{index}")
+            self.embeddings.append(response)
+            self.docs.append(output_str)
+            self.metadatas.append({"source": file_name})
+            self.ids.append(f"id{index}")
             
         return docs, metadatas, ids, embeddings
 
-    def _load_data_into_vectordb(self):
+    def _load_data_into_vectordb(self, batch_size:int, collection_name:str):
         """
         Inject the prepared data into the Vector DB.
         
         Raises an error if the collection_name already exists in vector DB
         The method prints a confirmation message upon successful data injection.
         """
-        collection = self.vectordb.create_collection(name=self.collection_name)
-        collection.add(
-            documents=self.docs,
-            metadatas=self.metadatas,
-            embeddings=self.embeddings,
-            ids=self.ids
-        )
+        # insert data with customized ids
+        batches = len(self.docs)//batch_size
+        print("Batches: ", batches)
+        start = 0           # first primary key id
+        total_rt = 0        # total response time for inert
+
+        print(f"inserting {batch_size*batches} entities into example collection: {collection_name}")
+        for _ in range(batches):
+            rows = [{"batch": self.metadatas[i]["batch"], "source": self.metadatas[i]["source"], 
+                     "row": self.docs[i], "row_embedding": self.embeddings[i],
+                     "row_id": self.ids[i]} 
+                    for i in range(start, start+batch_size)]
+            t0 = time.time()
+            self.vectordb.milvus_client.insert(collection_name, rows)
+            ins_rt = time.time() - t0
+            start += batch_size
+            total_rt += ins_rt
+        print(f"Succeed in {round(total_rt,4)} seconds!")
         print("Data stored in Vector DB.")
 
     def _validate_db(self):
@@ -166,7 +183,7 @@ class PrepareVectorDBFromTabularData:
         print("File readed:", file_name) 
         json_data= self.dataframe_to_json_batches(df, batch_size=25)
         #print("\n JSON:", json_data)
-        print(json_data[0])
+        #print(json_data[0])
         for i in json_data[0]:
             print(i)
 
@@ -174,9 +191,13 @@ class PrepareVectorDBFromTabularData:
         print(len(docs))
         print(len(metadata))
         print(len(embeddings))
+        print("Docs: ", docs[0])
+        print("Metadata: ", metadata[0])
+        print("Embeddings: ", embeddings[0])
         #print(eval(json_data[0]))
         #print(type(eval(json_data[0])))
         #print(type(json_data[0]))
         #print(len(json_data))
+        self._load_data_into_vectordb(25, self.collection_name)
         return df
         
