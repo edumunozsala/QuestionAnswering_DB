@@ -1,8 +1,9 @@
 langchain
 langchain_community
 langchain_core
-pandas
+numpy==1.26.4
+pandas==2.2.2
 python-dotenv
-SQLAlchemy
+SQLAlchemy==2.0.34
 langchain-openai
 pymilvus

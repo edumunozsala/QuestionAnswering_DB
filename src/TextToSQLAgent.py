@@ -27,8 +27,7 @@ class TextToSQLAgent:
         self.agent_system_role= agent_system_role
         self.chatbot= []
 
-    @staticmethod
-    def respond(message: str) -> Tuple:
+    def respond(self, message: str) -> tuple:
         """
         Respond to a message based on the given chat and application functionality types.
 
@@ -61,6 +60,6 @@ class TextToSQLAgent:
         response = chain.invoke({"question": message})
 
         # Get the `response` variable from any of the selected scenarios and pass it to the user.
-        chatbot.append(
+        self.chatbot.append(
                 (message, response))
-        return response, chatbot
+        return response, self.chatbot

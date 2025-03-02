@@ -9,22 +9,24 @@ class PrepareSQLFromTabularData:
     This class reads each file, converts the data to a DataFrame, and then
     stores it as a table in a SQLite database, which is specified by the application configuration.
     """
-    def __init__(self, files_dir,db_path: str) -> None:
+    def __init__(self, files_dir,db_path: str,  csv_codec: str, 
+                 csv_sep: str) -> None:
         """
         Initialize an instance of PrepareSQLFromTabularData.
 
         Args:
             files_dir (str): The directory containing the CSV or XLSX files to be converted to SQL tables.
         """
-        APPCFG = LoadConfig()
         self.files_directory = files_dir
         self.file_dir_list = os.listdir(files_dir)
+        self.csv_codec= csv_codec
+        self.csv_sep= csv_sep
         
         db_conection = f"sqlite:///{db_path}"
-        self.engine = create_engine(db_path)
+        self.engine = create_engine(db_conection)
         print("Number of csv files:", len(self.file_dir_list))
 
-    def _prepare_db(self):
+    def _prepare_db(self, limit: int):
         """
         Private method to convert CSV/XLSX files from the specified directory into SQL tables.
 
@@ -35,9 +37,9 @@ class PrepareSQLFromTabularData:
             full_file_path = os.path.join(self.files_directory, file)
             file_name, file_extension = os.path.splitext(file)
             if file_extension == ".csv":
-                df = pd.read_csv(full_file_path)
+                df = pd.read_csv(full_file_path, sep= self.csv_sep, encoding= self.csv_codec)
             elif file_extension == ".xlsx":
-                df = pd.read_excel(full_file_path)
+                df = pd.read_excel(full_file_path, sep= self.csv_sep, encoding= self.csv_codec)
             else:
                 raise ValueError("The selected file type is not supported")
             # Insert data loaded to SQL BD
@@ -58,11 +60,11 @@ class PrepareSQLFromTabularData:
         print("Available table nasmes in created SQL DB:", table_names)
         print("==============================")
 
-    def run_pipeline(self):
+    def run_pipeline(self, limit: int):
         """
         Public method to run the data import pipeline, which includes preparing the database
         and validating the created tables. It is the main entry point for converting files
         to SQL tables and confirming their creation.
         """
-        self._prepare_db()
+        self._prepare_db(limit)
         self._validate_db()
