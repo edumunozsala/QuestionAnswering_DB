@@ -1,0 +1,7 @@
+files:
+  - filename: turismo_receptor_provincia_pais.csv
+    description: Contiene el numero de turistas, el numero de pernoctaciones y la estancia media de turistas extranjeros en cada provincia de España por año y mes
+  - filename: destino_prov_mes.csv
+    description: Contiene el gasto medio por visitante segun su tipo de origen en cada provincia de España por año y mes
+  - filename: vut_prov.csv
+    description: Contiene el numero de viviendas de uso turistico, el numero de plazas y el precio medio en cada provincia de España por año y mes

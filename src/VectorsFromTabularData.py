@@ -177,7 +177,7 @@ class PrepareVectorDBFromTabularData:
         print("Number of vectors in vectordb:", vectordb.count())
         print("==============================")
 
-    def load_data(self, limit: int):
+    def load_datafile(self, limit: int):
 
         df, file_name= self._load_dataframe(self.file_directory, limit)
         print("File readed:", file_name) 
