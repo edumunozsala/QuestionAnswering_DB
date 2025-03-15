@@ -11,28 +11,35 @@ from src.LoadConfig import LoadConfig
 import os
 from dotenv import load_dotenv
 
-def process_docs_to_vectordb():
+def create_vectordb():
     vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"))
     vectordb.load_milvus_client()
     vectordb.prepare_vectordb(os.getenv("COLLECTION_NAME"), int(os.getenv("EMBEDDINGS_DIM")))
 
-    prepdata= PrepareVectorDBFromTabularData(os.getenv("DATAFILE_TO_LOAD"), os.getenv("COLLECTION_NAME"), 
-                                            os.getenv("CSV_CODEC"), os.getenv("CSV_SEP"), models.embeddings_model, vectordb)
+    return vectordb
 
-    prepdata.load_data(100)
+def process_docs_to_vectordb(models: AIModels, datafiles: list, vectordb: VectorDB):
+    prepdata= PrepareVectorDBFromTabularData(os.getenv("DATA_DIR"), os.getenv("COLLECTION_NAME"), 
+                                             os.getenv("CSV_CODEC"), os.getenv("CSV_SEP"), models.embeddings_model, vectordb)
 
-def question_answer():
+    prepdata.load_data(datafiles, 100)
+
+def load_collection_vectordb():
     vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"))
     vectordb.load_milvus_client()
     vectordb.load_milvus_collection(os.getenv("COLLECTION_NAME"))
 
+    return vectordb
+    
+def question_answer(question: str, vectordb: VectorDB, models: AIModels):
+
     search_params = {"metric_type": "L2"}
     rag_agent= RAGTabularDataAgent(os.getenv("RAG_LLM_SYSTEM_ROLE"), os.getenv("COLLECTION_NAME"), 
             models.embeddings_model, models.langchain_llm, vectordb)
-    response,chat= rag_agent.respond("¿Cuantos turistas visitaron la ciudad de A coruña en el año 2019?", search_params, 3)
+    response,chat= rag_agent.respond(question, search_params, 3)
 
     print(response)
-    return response
+    return response, chat
 
 def load_csv_to_sqldb():
     prepdata= PrepareSQLFromTabularData(os.getenv("DATA_DIR"), os.getenv("DB_DIR"), 
@@ -61,13 +68,21 @@ def run_sql_agent():
 
 if __name__ == "__main__":
     print("Environent variables are loaded:", load_dotenv())
-    #models= AIModels(os.getenv("OPENAI_MODEL"),os.getenv("EMBEDDINGS_MODEL"),os.getenv("TEMPERATURE"), os.getenv("MAX_TOKENS"))
-    #models.load_openai_models()
-
+    
     # Load the configuration
     config= LoadConfig(os.getenv("DATAFILES_CONFIG"))
     file_descriptions= config.get_file_descriptions()
     print(file_descriptions)
-
+    
+    #models= AIModels(os.getenv("OPENAI_MODEL"),os.getenv("EMBEDDINGS_MODEL"),os.getenv("TEMPERATURE"), os.getenv("MAX_TOKENS"))
+    #models.load_openai_models()
+    models= load_models()
+    vectordb= create_vectordb()
+    process_docs_to_vectordb(models, file_descriptions, vectordb)
+    
+    # Set the question
+    question= "¿Cuantos turistas visitaron la ciudad de A coruña en el año 2019?"
+    # Get the response
+    response, chat= question_answer(question, vectordb, models)
 
 
