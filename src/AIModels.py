@@ -1,3 +1,4 @@
+import os
 
 from openai import AzureOpenAI
 from langchain.chat_models import AzureChatOpenAI
@@ -45,6 +46,7 @@ class AIModels:
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             max_retries=3,
+            verbose= True,
         )
         self.embeddings_model = OpenAIEmbeddings(
                                     model=self.embedding_model_name

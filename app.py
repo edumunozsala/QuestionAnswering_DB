@@ -18,16 +18,19 @@ def create_vectordb():
 
     return vectordb
 
+def load_collection_vectordb():
+    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"))
+    vectordb.load_milvus_client()
+    vectordb.load_milvus_collection(os.getenv("COLLECTION_NAME"))
+
+    return vectordb
+
 def process_docs_to_vectordb(models: AIModels, datafiles: list, vectordb: VectorDB):
     prepdata= PrepareVectorDBFromTabularData(os.getenv("DATA_DIR"), os.getenv("COLLECTION_NAME"), 
                                              os.getenv("CSV_CODEC"), os.getenv("CSV_SEP"), models.embeddings_model, vectordb)
 
     prepdata.load_data(datafiles, 100)
 
-def load_collection_vectordb():
-    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"))
-    vectordb.load_milvus_client()
-    vectordb.load_milvus_collection(os.getenv("COLLECTION_NAME"))
 
     return vectordb
     
@@ -78,10 +81,12 @@ if __name__ == "__main__":
     #models.load_openai_models()
     models= load_models()
     vectordb= create_vectordb()
+    #vectordb= load_collection_vectordb()
+    
     process_docs_to_vectordb(models, file_descriptions, vectordb)
     
     # Set the question
-    question= "¿Cuantos turistas visitaron la ciudad de A coruña en el año 2019?"
+    question= "¿Cuantos turistas visitaron la provincia de A coruña en el año 2019?"
     # Get the response
     response, chat= question_answer(question, vectordb, models)
 
