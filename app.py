@@ -84,10 +84,13 @@ if __name__ == "__main__":
     #vectordb= load_collection_vectordb()
     
     process_docs_to_vectordb(models, file_descriptions, vectordb)
-    
     # Set the question
-    question= "¿Cuantos turistas visitaron la provincia de A coruña en el año 2019?"
+    question= "¿Cuantos viviendas turísticas existían en la provincia de A coruña en Agosto del año 2020?"
     # Get the response
     response, chat= question_answer(question, vectordb, models)
 
+    # Set the question
+    question= "¿Cuantos turistas visitaron la ciudad de A coruña en el año 2019?"
+    # Get the response
+    response, chat= question_answer(question, vectordb, models)
 

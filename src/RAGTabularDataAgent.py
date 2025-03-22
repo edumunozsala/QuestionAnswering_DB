@@ -37,8 +37,6 @@ class RAGTabularDataAgent:
         query_embeddings  = self.embeddings_model.embed_query(
                     message,
                 )
-        print(query_embeddings)
-        print(search_params)
 
         results = self.vectordb.milvus_client.search(collection_name= self.collection_name, data=[query_embeddings], 
                         limit=topk, search_params=search_params, anns_field="row_embedding")

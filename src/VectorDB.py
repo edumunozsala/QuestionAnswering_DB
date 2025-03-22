@@ -17,7 +17,7 @@ class VectorDB:
         self.milvus_client = MilvusClient(uri=self.uri, token=self.token)
         print(f"Connected to DB: {self.uri}")
 
-    def prepare_vectordb(self, collection_name: str, dim: int):
+    def prepare_vectordb(self, collection_name: str, dim: int, replace: bool = False):
         self.dim= dim
         self.collection_name= collection_name
 

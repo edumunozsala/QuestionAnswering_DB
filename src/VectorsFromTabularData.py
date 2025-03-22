@@ -100,6 +100,9 @@ class PrepareVectorDBFromTabularData:
                 # Add the file description as a new json value in the row
                 row["description"]= file_description
 
+                if j==0:
+                    print(row)
+
                 response = self.embeddings_model.embed_query(
                     str(row),
                 )
@@ -183,7 +186,8 @@ class PrepareVectorDBFromTabularData:
     def load_datafile(self, datafile_name: str, datafile_description:str, limit: int):
 
         df, file_name= self._load_dataframe(os.path.join(self.file_directory,datafile_name), limit)
-        print("File readed:", file_name) 
+        print("File readed:", file_name)
+        print("File description:", datafile_description) 
         json_data= self.dataframe_to_json_batches(df, batch_size=25)
         #print("\n JSON:", json_data)
         #print(json_data[0])
@@ -191,12 +195,12 @@ class PrepareVectorDBFromTabularData:
         #    print(i)
 
         docs, metadata, ids, embeddings= self._generate_embeddings_from_json(json_data, file_name, datafile_description)
-        print(len(docs))
-        print(len(metadata))
-        print(len(embeddings))
-        print("Docs: ", docs[0])
-        print("Metadata: ", metadata[0])
-        print("Embeddings: ", embeddings[0])
+        print("Docs readed: ",len(docs))
+        print("Metadata readed: ", len(metadata))
+        print("Embeddings created: ", len(embeddings))
+        #print("Docs: ", docs[0])
+        #print("Metadata: ", metadata[0])
+        #print("Embeddings: ", embeddings[0])
         #print(eval(json_data[0]))
         #print(type(eval(json_data[0])))
         #print(type(json_data[0]))
