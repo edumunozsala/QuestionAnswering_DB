@@ -162,8 +162,7 @@ class PrepareVectorDBFromTabularData:
         for _ in range(batches):
             rows = [{"batch": self.metadatas[i]["batch"], "source": self.metadatas[i]["source"], 
                      "description": self.metadatas[i]["description"], 
-                     "row": self.docs[i], "row_embedding": self.embeddings[i],
-                     "row_id": self.ids[i]} 
+                     "row": self.docs[i], "row_embedding": self.embeddings[i]} #"row_id": self.ids[i]} 
                     for i in range(start, start+batch_size)]
             t0 = time.time()
             self.vectordb.milvus_client.insert(collection_name, rows)
@@ -183,12 +182,12 @@ class PrepareVectorDBFromTabularData:
         print("Number of vectors in vectordb:", vectordb.count())
         print("==============================")
 
-    def load_datafile(self, datafile_name: str, datafile_description:str, limit: int):
+    def load_datafile(self, datafile_name: str, datafile_description:str, limit: int=100, batch_size: int=25):
 
         df, file_name= self._load_dataframe(os.path.join(self.file_directory,datafile_name), limit)
         print("File readed:", file_name)
         print("File description:", datafile_description) 
-        json_data= self.dataframe_to_json_batches(df, batch_size=25)
+        json_data= self.dataframe_to_json_batches(df, batch_size, limit)
         #print("\n JSON:", json_data)
         #print(json_data[0])
         #for i in json_data[0]:
@@ -205,11 +204,11 @@ class PrepareVectorDBFromTabularData:
         #print(type(eval(json_data[0])))
         #print(type(json_data[0]))
         #print(len(json_data))
-        self._load_data_into_vectordb(25, self.collection_name)
+        self._load_data_into_vectordb(batch_size, self.collection_name)
 
-    def load_data(self, datafiles: list, limit: int):
+    def load_data(self, datafiles: list, limit: int, batch_size: int):
         for datafile in datafiles:
             print(datafile)
-            self.load_datafile(datafile["filename"], datafile["description"], limit)
+            self.load_datafile(datafile["filename"], datafile["description"], limit, batch_size)
         print("Data loaded into Vector DB.")
         

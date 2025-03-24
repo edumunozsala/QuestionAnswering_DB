@@ -25,21 +25,21 @@ def load_collection_vectordb():
 
     return vectordb
 
-def process_docs_to_vectordb(models: AIModels, datafiles: list, vectordb: VectorDB):
+def process_docs_to_vectordb(models: AIModels, datafiles: list, vectordb: VectorDB, limit: int= 100, batch_size: int= 25):
     prepdata= PrepareVectorDBFromTabularData(os.getenv("DATA_DIR"), os.getenv("COLLECTION_NAME"), 
                                              os.getenv("CSV_CODEC"), os.getenv("CSV_SEP"), models.embeddings_model, vectordb)
 
-    prepdata.load_data(datafiles, 100)
+    prepdata.load_data(datafiles, limit, batch_size)
 
 
     return vectordb
     
 def question_answer(question: str, vectordb: VectorDB, models: AIModels):
 
-    search_params = {"metric_type": "L2"}
+    search_params = {"metric_type": "COSINE"}
     rag_agent= RAGTabularDataAgent(os.getenv("RAG_LLM_SYSTEM_ROLE"), os.getenv("COLLECTION_NAME"), 
             models.embeddings_model, models.langchain_llm, vectordb)
-    response,chat= rag_agent.respond(question, search_params, 3)
+    response,chat= rag_agent.respond(question, search_params, 5)
 
     print(response)
     return response, chat
@@ -83,9 +83,15 @@ if __name__ == "__main__":
     vectordb= create_vectordb()
     #vectordb= load_collection_vectordb()
     
-    process_docs_to_vectordb(models, file_descriptions, vectordb)
+    process_docs_to_vectordb(models, file_descriptions, vectordb, 1000, 100)
+    """
     # Set the question
     question= "¿Cuantos viviendas turísticas existían en la provincia de A coruña en Agosto del año 2020?"
+    # Get the response
+    response, chat= question_answer(question, vectordb, models)
+    """
+    # Set the question
+    question= "¿Cual fue el gasto medio de los turistas de tipo Internacional en A coruña en el año 2019?"
     # Get the response
     response, chat= question_answer(question, vectordb, models)
 

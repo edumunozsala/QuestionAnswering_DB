@@ -1,5 +1,5 @@
 files:
   - filename: turismo_receptor_provincia_pais.csv
-    description: numero de turistas,  numero de pernoctaciones y estancia media de turistas extranjeros por provincia, año y mes
-  - filename: vut_prov.csv
-    description: numero de viviendas turisticas, plazas, de plazas por vivienda por provincia por año y mes
+    description: numero de turistas, numero de pernoctaciones, estancia media de turistas extranjeros
+  - filename: destino_prov_mes.csv
+    description: gasto medio por visitante y tipo de origen

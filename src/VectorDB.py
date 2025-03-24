@@ -29,7 +29,7 @@ class VectorDB:
             print("Success to drop the existing collection %s" % collection_name)
 
         print("Preparing schema")
-        self.schema = self.milvus_client.create_schema()
+        self.schema = self.milvus_client.create_schema(auto_id= True)
         self.schema.add_field("row_id", DataType.INT64, is_primary=True, description="Row id")
         self.schema.add_field("batch", DataType.INT64, is_primary=False, description="Batch")
         self.schema.add_field("source", DataType.VARCHAR, max_length=100, description="Source datafile name")
@@ -38,7 +38,7 @@ class VectorDB:
         self.schema.add_field("row_embedding", DataType.FLOAT_VECTOR, dim=dim, description="Row embedding")
         print("Preparing index parameters")
         index_params = self.milvus_client.prepare_index_params()
-        index_params.add_index("row_embedding", metric_type="L2")
+        index_params.add_index("row_embedding", index_type="AUTOINDEX", metric_type="COSINE")
 
         print(f"Creating collection: {collection_name}")
         # create collection with the above schema and index parameters, and then load automatically
