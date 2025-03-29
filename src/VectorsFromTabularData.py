@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import time
+import json
 
 class PrepareVectorDBFromTabularData:
     def __init__(self, file_directory:str, collection_name: str, csv_codec: str, 
@@ -22,7 +23,7 @@ class PrepareVectorDBFromTabularData:
         self.ids = None
         self.embeddings = None
 
-    def _load_dataframe(self, file_directory: str, limit: int):
+    def _load_dataframe(self, file_directory: str, limit: int, sort_by: list = None):
         """
         Load a DataFrame from the specified CSV or Excel file.
         
@@ -44,14 +45,18 @@ class PrepareVectorDBFromTabularData:
         # CSV datafile        
         if file_extension == ".csv":
             df = pd.read_csv(file_directory, sep= self.csv_sep, nrows=limit, encoding= self.csv_codec)
-            return df, file_name
         # Excel datafile                    
         elif file_extension == ".xlsx":
             df = pd.read_excel(file_directory, sep= self.csv_sep, nrows=limit, encoding= self.csv_codec)
-            return df, file_name
         else:
             raise ValueError("The selected file type is not supported")
 
+        if sort_by:
+            df.sort_values(by=sort_by, inplace=True)
+
+        return df, file_name
+
+    
     def dataframe_to_json_batches(self, df, batch_size=50, limit=0):
         """
         Converts a pandas DataFrame to JSON format in batches of a given size.
@@ -71,7 +76,6 @@ class PrepareVectorDBFromTabularData:
 
         for i in range(0, num_rows, batch_size):
             batch = df.iloc[i:i+batch_size]
-            #json_batches.append(batch.to_json(orient='records'))
             json_batches+=[eval(batch.to_json(orient='records'))]
         
         return json_batches
@@ -114,6 +118,40 @@ class PrepareVectorDBFromTabularData:
             
         return self.docs, self.metadatas, self.ids, self.embeddings
 
+    def _generate_batches_embeddings_from_json(self, json_data:list, file_name:str, file_description: str):
+        """
+        Generate embeddings and prepare documents in batches for data ingestion.
+        
+        Args:
+            df (pd.DataFrame): The DataFrame containing the data to be processed.
+            file_name (str): The base name of the file for use in metadata.
+            
+        Returns:
+            list, list, list, list: Lists containing documents, metadatas, ids, and embeddings respectively.
+        """
+        self.docs = []
+        self.metadatas = []
+        self.ids = []
+        self.embeddings = []
+
+        for i, batch in enumerate(json_data):
+            #output_str = ""
+            # Create a single json string from a list of json objects
+            output_str = '"Content Description": "'+file_description+'",'+ ','.join([str(json.dumps(row, ensure_ascii=False).encode('latin-1')) for row in batch])
+            #output_str = ','.join([str(json.dumps(row, ensure_ascii=False).encode('latin-1')) for row in batch])
+            #print(type(output_str))
+
+            response = self.embeddings_model.embed_query(
+                    str(output_str),
+            )
+            #response= "Test"
+            self.embeddings.append(response)
+            self.docs.append(str(output_str))
+            self.metadatas.append({"source": file_name, "description": file_description, "batch": i})
+            self.ids.append(i)
+            
+        return self.docs, self.metadatas, self.ids, self.embeddings
+
     def _generate_embeddings(self, df:pd.DataFrame, file_name:str):
         """
         Generate embeddings and prepare documents for data injection.
@@ -143,7 +181,7 @@ class PrepareVectorDBFromTabularData:
             self.metadatas.append({"source": file_name})
             self.ids.append(f"id{index}")
             
-        return docs, metadatas, ids, embeddings
+        return self.docs, self.metadatas, self.ids, self.embeddings
 
     def _load_data_into_vectordb(self, batch_size:int, collection_name:str):
         """
@@ -188,27 +226,35 @@ class PrepareVectorDBFromTabularData:
         print("File readed:", file_name)
         print("File description:", datafile_description) 
         json_data= self.dataframe_to_json_batches(df, batch_size, limit)
-        #print("\n JSON:", json_data)
-        #print(json_data[0])
-        #for i in json_data[0]:
-        #    print(i)
 
-        docs, metadata, ids, embeddings= self._generate_embeddings_from_json(json_data, file_name, datafile_description)
+        #docs, metadata, ids, embeddings= self._generate_embeddings_from_json(json_data, file_name, datafile_description)
+        docs, metadata, ids, embeddings= self._generate_batches_embeddings_from_json(json_data, file_name, datafile_description)
         print("Docs readed: ",len(docs))
         print("Metadata readed: ", len(metadata))
         print("Embeddings created: ", len(embeddings))
-        #print("Docs: ", docs[0])
+        print("Docs: ", docs[0])
         #print("Metadata: ", metadata[0])
         #print("Embeddings: ", embeddings[0])
         #print(eval(json_data[0]))
         #print(type(eval(json_data[0])))
         #print(type(json_data[0]))
         #print(len(json_data))
-        self._load_data_into_vectordb(batch_size, self.collection_name)
+        self._load_data_into_vectordb(5, self.collection_name)
 
     def load_data(self, datafiles: list, limit: int, batch_size: int):
         for datafile in datafiles:
             print(datafile)
             self.load_datafile(datafile["filename"], datafile["description"], limit, batch_size)
         print("Data loaded into Vector DB.")
+    
+    def test_load(self,):
+        df, file_name= self._load_dataframe(os.path.join('data','destino_prov_mes.csv'), 100)
+        json_data= self.dataframe_to_json_batches(df, 25, 100)
+
+        docs, metadata, ids, embeddings= self._generate_batches_embeddings_from_json(json_data, file_name, 'gasto medio por visitante y tipo de origen')
+        print("Docs readed: ",len(docs))
+        print("Metadata readed: ", len(metadata))
+        print("Docs: ", docs[0])
+        print("Metadata: ", metadata[0])
+        print("Ids: ", ids)
         

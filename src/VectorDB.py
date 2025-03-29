@@ -1,9 +1,11 @@
 from pymilvus import MilvusClient
 from pymilvus import DataType
+import cohere
+import os
 
 class VectorDB:
 
-    def __init__(self, uri:str, token: str) -> None:
+    def __init__(self, uri:str, token: str, rerank: bool = False) -> None:
         """
         Initialize the instance with the file directory and load the app config.
         
@@ -12,12 +14,14 @@ class VectorDB:
         """
         self.uri = uri
         self.token = token
+        if rerank:
+            self.reranker = cohere.ClientV2(os.getenv("COHERE_API_KEY"))
 
     def load_milvus_client(self):
         self.milvus_client = MilvusClient(uri=self.uri, token=self.token)
         print(f"Connected to DB: {self.uri}")
 
-    def prepare_vectordb(self, collection_name: str, dim: int, replace: bool = False):
+    def prepare_vectordb(self, collection_name: str, dim: int):
         self.dim= dim
         self.collection_name= collection_name
 
@@ -33,7 +37,7 @@ class VectorDB:
         self.schema.add_field("row_id", DataType.INT64, is_primary=True, description="Row id")
         self.schema.add_field("batch", DataType.INT64, is_primary=False, description="Batch")
         self.schema.add_field("source", DataType.VARCHAR, max_length=100, description="Source datafile name")
-        self.schema.add_field("row", DataType.VARCHAR, max_length= 512, description="Row content")
+        self.schema.add_field("row", DataType.VARCHAR, max_length= 16384, description="Row content")
         self.schema.add_field("description", DataType.VARCHAR, max_length= 256, description="Data content description")
         self.schema.add_field("row_embedding", DataType.FLOAT_VECTOR, dim=dim, description="Row embedding")
         print("Preparing index parameters")
@@ -74,3 +78,22 @@ class VectorDB:
         )
 
         return [r["row"] for r in res]
+    
+    def rerank_docs(self, query: str, documents: list, top_n: int = 2) -> list:
+        """
+        Rerank the documents using Cohere's reranking model.
+        Args:
+            query (str): The user query.
+            documents (list): List of documents to rerank.
+        Returns:
+            list: Reranked documents.
+        """
+        # Rerank the documents
+        results = self.reranker.rerank(
+            model=os.getenv("RERANK_MODEL"), query=query, documents=documents, top_n=top_n)
+        # Extract the reranked documents
+        reranked_docs = [result.document for result in results.results]
+
+        #for result in results.results:
+        #    print(result)
+        return reranked_docs

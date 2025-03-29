@@ -1,5 +1,10 @@
 files:
   - filename: turismo_receptor_provincia_pais.csv
     description: numero de turistas, numero de pernoctaciones, estancia media de turistas extranjeros
+    sort_by: ['PROVINCIA_DESTINO', 'AÑO', 'MES']
   - filename: destino_prov_mes.csv
     description: gasto medio por visitante y tipo de origen
+    sort_by: ['PROVINCIA_DESTINO', 'AÑO', 'MES']
+  - filename: vut_prov.csv
+    description: numero de viviendas turisticas, numero de plazas, plazas por vivienda turística        
+    sort_by: ['PROVINCIA', 'AÑO', 'MES']

@@ -19,7 +19,8 @@ def create_vectordb():
     return vectordb
 
 def load_collection_vectordb():
-    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"))
+    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"), rerank= False)
+    # Load the collection
     vectordb.load_milvus_client()
     vectordb.load_milvus_collection(os.getenv("COLLECTION_NAME"))
 
@@ -30,6 +31,7 @@ def process_docs_to_vectordb(models: AIModels, datafiles: list, vectordb: Vector
                                              os.getenv("CSV_CODEC"), os.getenv("CSV_SEP"), models.embeddings_model, vectordb)
 
     prepdata.load_data(datafiles, limit, batch_size)
+    #prepdata.test_load()
 
 
     return vectordb
@@ -39,7 +41,7 @@ def question_answer(question: str, vectordb: VectorDB, models: AIModels):
     search_params = {"metric_type": "COSINE"}
     rag_agent= RAGTabularDataAgent(os.getenv("RAG_LLM_SYSTEM_ROLE"), os.getenv("COLLECTION_NAME"), 
             models.embeddings_model, models.langchain_llm, vectordb)
-    response,chat= rag_agent.respond(question, search_params, 5)
+    response,chat= rag_agent.respond(question, search_params, topk= 5)
 
     print(response)
     return response, chat
@@ -76,27 +78,33 @@ if __name__ == "__main__":
     config= LoadConfig(os.getenv("DATAFILES_CONFIG"))
     file_descriptions= config.get_file_descriptions()
     print(file_descriptions)
+    print(type(file_descriptions[0]['sort_by']))
     
+
     #models= AIModels(os.getenv("OPENAI_MODEL"),os.getenv("EMBEDDINGS_MODEL"),os.getenv("TEMPERATURE"), os.getenv("MAX_TOKENS"))
     #models.load_openai_models()
     models= load_models()
     vectordb= create_vectordb()
     #vectordb= load_collection_vectordb()
     
-    process_docs_to_vectordb(models, file_descriptions, vectordb, 1000, 100)
-    """
-    # Set the question
-    question= "¿Cuantos viviendas turísticas existían en la provincia de A coruña en Agosto del año 2020?"
-    # Get the response
-    response, chat= question_answer(question, vectordb, models)
-    """
-    # Set the question
-    question= "¿Cual fue el gasto medio de los turistas de tipo Internacional en A coruña en el año 2019?"
-    # Get the response
-    response, chat= question_answer(question, vectordb, models)
+    process_docs_to_vectordb(models, file_descriptions, vectordb, 2000, 25)
+
 
     # Set the question
-    question= "¿Cuantos turistas visitaron la ciudad de A coruña en el año 2019?"
+    question= "¿Cuantos viviendas turísticas existían en la provincia de Albacete en Agosto del año 2020?"
     # Get the response
     response, chat= question_answer(question, vectordb, models)
+    print(response)
 
+    # Set the question
+    #question= "¿Cual fue el gasto medio de los turistas de tipo Internacional en A coruña en el año 2019?"
+    question= "¿Cual fue el gasto de los turistas de tipo Nacional en La Rioja en Febrero del año 2019?"
+    # Get the response
+    response, chat= question_answer(question, vectordb, models)
+    print(response)
+
+    # Set the question
+    question= "¿Cuantos turistas visitaron la ciudad de A coruña en Septiembre del año 2019?"
+    # Get the response
+    response, chat= question_answer(question, vectordb, models)
+    print(response)

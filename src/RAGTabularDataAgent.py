@@ -1,3 +1,4 @@
+import cohere
 
 class RAGTabularDataAgent:
     """
@@ -17,7 +18,7 @@ class RAGTabularDataAgent:
         self.collection_name= collection_name
         self.chatbot= []
 
-    def respond(self, message: str, search_params: dict, topk) -> tuple:
+    def respond(self, message: str, search_params: dict, topk: int) -> tuple:
         """
         Respond to a message based on the given chat and application functionality types.
 
@@ -59,6 +60,6 @@ class RAGTabularDataAgent:
 
         self.chatbot.append(
                 (message, response))
-
+        
         return response, self.chatbot
 
