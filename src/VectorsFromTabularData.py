@@ -82,7 +82,7 @@ class PrepareVectorDBFromTabularData:
 
     def _generate_embeddings_from_json(self, json_data:list, file_name:str, file_description: str):
         """
-        Generate embeddings and prepare documents for data injection.
+        Generate embeddings, one per json row, and prepare documents for data ingestion. 
         
         Args:
             df (pd.DataFrame): The DataFrame containing the data to be processed.
@@ -120,7 +120,7 @@ class PrepareVectorDBFromTabularData:
 
     def _generate_batches_embeddings_from_json(self, json_data:list, file_name:str, file_description: str):
         """
-        Generate embeddings and prepare documents in batches for data ingestion.
+        Generate embeddings, one per batch of json rows, and prepare documents in batches for data ingestion.
         
         Args:
             df (pd.DataFrame): The DataFrame containing the data to be processed.
@@ -154,7 +154,7 @@ class PrepareVectorDBFromTabularData:
 
     def _generate_embeddings(self, df:pd.DataFrame, file_name:str):
         """
-        Generate embeddings and prepare documents for data injection.
+        Generate embeddings from a pandas dataframe and prepare documents for data injection.
         
         Args:
             df (pd.DataFrame): The DataFrame containing the data to be processed.
@@ -220,15 +220,20 @@ class PrepareVectorDBFromTabularData:
         print("Number of vectors in vectordb:", vectordb.count())
         print("==============================")
 
-    def load_datafile(self, datafile_name: str, datafile_description:str, limit: int=100, batch_size: int=25):
+    def load_datafile(self, datafile_name: str, datafile_description:str, limit: int=100, batch_size: int=25,
+                      chunk_mode: str='batch'):
 
         df, file_name= self._load_dataframe(os.path.join(self.file_directory,datafile_name), limit)
         print("File readed:", file_name)
         print("File description:", datafile_description) 
         json_data= self.dataframe_to_json_batches(df, batch_size, limit)
 
-        #docs, metadata, ids, embeddings= self._generate_embeddings_from_json(json_data, file_name, datafile_description)
-        docs, metadata, ids, embeddings= self._generate_batches_embeddings_from_json(json_data, file_name, datafile_description)
+        # Generate embeddings from the json data
+        if chunk_mode=='row':
+            docs, metadata, ids, embeddings= self._generate_embeddings_from_json(json_data, file_name, datafile_description)
+        else:
+            docs, metadata, ids, embeddings= self._generate_batches_embeddings_from_json(json_data, file_name, datafile_description)
+
         print("Docs readed: ",len(docs))
         print("Metadata readed: ", len(metadata))
         print("Embeddings created: ", len(embeddings))
@@ -241,10 +246,11 @@ class PrepareVectorDBFromTabularData:
         #print(len(json_data))
         self._load_data_into_vectordb(5, self.collection_name)
 
-    def load_data(self, datafiles: list, limit: int, batch_size: int):
+    def load_data(self, datafiles: list, limit: int, batch_size: int, chunk_mode: str='batch'):
         for datafile in datafiles:
             print(datafile)
-            self.load_datafile(datafile["filename"], datafile["description"], limit, batch_size)
+            self.load_datafile(datafile["filename"], datafile["description"], limit, batch_size, chunk_mode)
+            
         print("Data loaded into Vector DB.")
     
     def test_load(self,):

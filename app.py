@@ -11,15 +11,18 @@ from src.LoadConfig import LoadConfig
 import os
 from dotenv import load_dotenv
 
-def create_vectordb():
-    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"))
+def create_vectordb(rerank: bool= False):
+    # Create the vector database
+    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"), rerank= rerank)
     vectordb.load_milvus_client()
+    # Create the collection
     vectordb.prepare_vectordb(os.getenv("COLLECTION_NAME"), int(os.getenv("EMBEDDINGS_DIM")))
 
     return vectordb
 
-def load_collection_vectordb():
-    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"), rerank= False)
+def load_collection_vectordb(rerank: bool= False):
+    # Create the vector database
+    vectordb= VectorDB(os.getenv("MILVUS_URI"), os.getenv("MILVUS_TOKEN"), rerank= rerank)
     # Load the collection
     vectordb.load_milvus_client()
     vectordb.load_milvus_collection(os.getenv("COLLECTION_NAME"))
@@ -33,6 +36,21 @@ def process_docs_to_vectordb(models: AIModels, datafiles: list, vectordb: Vector
     prepdata.load_data(datafiles, limit, batch_size)
     #prepdata.test_load()
 
+
+    return vectordb
+
+def prepare_rag_db(models: AIModels, file_descriptions: list, limit: int= 100, batch_size: int= 25, 
+                   create_collection: bool=False, rerank: bool= False):
+    # If we want to create a new collection
+    if create_collection:
+        # Create the vector database
+        vectordb= create_vectordb(rerank= rerank)
+    else:
+        # Load the collection
+        vectordb= load_collection_vectordb(rerank= rerank)
+
+    # Process the documents to the vector database
+    process_docs_to_vectordb(models, file_descriptions, vectordb, limit, batch_size)
 
     return vectordb
     
@@ -78,18 +96,12 @@ if __name__ == "__main__":
     config= LoadConfig(os.getenv("DATAFILES_CONFIG"))
     file_descriptions= config.get_file_descriptions()
     print(file_descriptions)
-    print(type(file_descriptions[0]['sort_by']))
-    
-
-    #models= AIModels(os.getenv("OPENAI_MODEL"),os.getenv("EMBEDDINGS_MODEL"),os.getenv("TEMPERATURE"), os.getenv("MAX_TOKENS"))
-    #models.load_openai_models()
+    # Load the models   
     models= load_models()
-    vectordb= create_vectordb()
-    #vectordb= load_collection_vectordb()
+
+    # Create the vector database
+    vectordb= prepare_rag_db(models, file_descriptions, 2000, 25, True, False)
     
-    process_docs_to_vectordb(models, file_descriptions, vectordb, 2000, 25)
-
-
     # Set the question
     question= "¿Cuantos viviendas turísticas existían en la provincia de Albacete en Agosto del año 2020?"
     # Get the response
